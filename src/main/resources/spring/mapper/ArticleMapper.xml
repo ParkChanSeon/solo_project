@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+	PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.chan.ArticleMapper">
+
+<!--  게시글 작성  -->
+<insert id="write" parameterType="article">
+
+insert into Article (member_id, article_title, article_content, article_c_date, article_u_date)
+values (
+#{member_id}, #{article_title}, #{article_content}, now(), now()
+)
+</insert>
+
+<!--  게시글 불러오기 -->
+<select id="list"  parameterType="map" resultType="article">
+
+select * from article
+where article_del = 'n'
+order by article_no desc
+limit #{start},#{size};
+
+</select>
+
+
+
+<!--  게시글 카운트 -->
+<select id ="article_count" resultType="java.lang.Integer">
+select count(*) from article
+</select>
+
+<!--  내용 보기 -->
+<select id="content" parameterType="article" resultType="article">
+select * from article
+where article_no = #{article_no}
+</select>
+
+<!--  게시글 조회수 올리기 -->
+<update id="count_up" parameterType="article">
+update article
+set article_count = article_count + 1
+where article_no = #{article_no}
+</update>
+
+<!--  게시글 내용 수정하기 -->
+<update id="modify" parameterType="article">
+update article
+set 
+article_title = #{article_title}, article_content = #{article_content}, article_u_date = now()
+where article_no = #{article_no}
+</update>
+
+<!--  게시글 댓글  -->
+<select id="commentList" parameterType="article" resultType="cmt">
+SELECT *
+FROM cmt
+where article_no = #{article_no}
+ORDER BY IF(ISNULL(parent_cmt_no), cmt_no, parent_cmt_no), seq;
+<!-- 
+select * from cmt
+where article_no = #{article_no}
+order by parent_cmt_no desc, seq asc;
+ -->
+
+</select>
+
+<!--  댓글 작성하기 -->
+<insert id="comment_write" parameterType="cmt">
+insert into cmt (
+article_no, member_id, cmt_content, cmt_c_date, cmt_u_date, depth, seq
+)
+values(
+#{article_no}, #{member_id}, #{cmt_content}, now(), now(), 0, 1)
+
+</insert>
+
+<select id = "comment_content" parameterType="cmt" resultType="cmt">
+select * from cmt
+where cmt_no = #{cmt_no}
+</select>
+
+<!--  대댓글 작성하기 -->
+<insert id="cmt_comment_write" parameterType="cmt">
+insert into cmt (
+article_no, member_id, cmt_content, cmt_c_date, cmt_u_date, depth, seq, parent_cmt_no
+)
+values(
+#{article_no}, #{member_id}, #{cmt_content}, now(), now(), #{depth}, #{seq}, #{parent_cmt_no}
+)
+
+</insert>
+
+<!-- 첫번째 댓글에 댓글이 올라올때 -->
+<update id = "cmt_seq_update_01" parameterType="cmt" >
+update cmt
+set seq = seq + 1
+where parent_cmt_no = #{parent_cmt_no}
+and seq > #{seq}
+</update>
+
+
+
+<!--  검색 -->
+<select id = "search" parameterType="map" resultType="article">
+select * from article
+where ${condition} LIKE CONCAT('%',#{value},'%') and article_del = 'n'
+order by article_no desc
+limit #{start},#{size};
+</select>
+
+<!-- 검색 결과 카운트 -->
+<select id ="search_count" parameterType="map" resultType="java.lang.Integer"> 
+select count(*) from article
+where ${condition} LIKE CONCAT('%',#{value},'%')
+</select>
+
+<!-- 수정할 댓글 불러오기 -->
+<select id = "select_cmt" parameterType="cmt" resultType="cmt">
+select * from cmt
+where cmt_no = #{cmt_no}
+</select>
+
+<!--  댓글 수정하기  -->
+<update id ="update_cmt" parameterType="cmt">
+update cmt
+set cmt_content = #{cmt_content}, cmt_u_date = now()
+where cmt_no = #{cmt_no}
+</update>
+
+<!--  댓글 삭제하기 -->
+<update id = "delete_cmt" parameterType="cmt">
+update cmt
+set cmt_del = 'y'
+where cmt_no = #{cmt_no}
+</update>
+
+<!--  게시글 삭제하기 -->
+<update id = "delete_article" parameterType="article">
+update article
+set article_del = 'y'
+where article_no = #{article_no}
+</update>
+
+</mapper>
